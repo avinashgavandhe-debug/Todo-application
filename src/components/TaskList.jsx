@@ -1,4 +1,3 @@
-import React from 'react';
 import { Text, Card, Group, ActionIcon } from '@mantine/core';
 import { Trash, Edit, Check } from 'tabler-icons-react';
 

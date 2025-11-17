@@ -1,19 +1,15 @@
-import {
-  Container,
-  Title,
-  Group,
-  Button,
-  MantineProvider,
-} from "@mantine/core";
-import { useState, useEffect } from "react";
+import {MantineProvider} from "@mantine/core";
+import { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Notifications, notifications } from "@mantine/notifications";
 import ModalComponent from "./components/ModalComponent";
 import Home from "./components/Home";
 import CompletedComponent from "./components/CompletedComponent";
+import { useTasks } from "./hooks/useTasks";
 
 export default function App() {
-  const [tasks, setTasks] = useState([]);
+  const { tasks, addTask, updateTask, deleteTask, toggleTaskComplete } =
+    useTasks();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [title, setTitle] = useState("");
@@ -43,14 +39,7 @@ export default function App() {
 
     if (editingTask !== null) {
       // Edit existing task
-      const updatedTasks = [...tasks];
-      updatedTasks[editingTask] = {
-        ...updatedTasks[editingTask],
-        title: title,
-        summary: summary,
-      };
-      setTasks(updatedTasks);
-      saveTasks(updatedTasks);
+      updateTask(editingTask, title, summary);
       setEditingTask(null);
       notifications.show({
         title: "Success",
@@ -70,17 +59,8 @@ export default function App() {
         }),
       });
     } else {
-      // Create new task
-      const updatedTasks = [
-        ...tasks,
-        {
-          title: title,
-          summary: summary,
-          completed: false,
-        },
-      ];
-      setTasks(updatedTasks);
-      saveTasks(updatedTasks);
+       // Create new task
+      addTask(title, summary);
       notifications.show({
         title: "Success",
         message: "New task created successfully",
@@ -104,46 +84,41 @@ export default function App() {
     setSummary("");
   }
 
-  function toggleTaskComplete(index) {
-    const updatedTasks = [...tasks];
-    updatedTasks[index] = {
-      ...updatedTasks[index],
-      completed: !updatedTasks[index].completed,
-    };
-    setTasks(updatedTasks);
-    saveTasks(updatedTasks);
+  function handleToggleTaskComplete(index) {
+    const taskWillBeCompleted = !tasks[index].completed;
+    toggleTaskComplete(index);
 
     notifications.show({
-      title: updatedTasks[index].completed ? "Task Completed" : "Task Reopened",
-      message: updatedTasks[index].completed
+      title: taskWillBeCompleted ? "Task Completed" : "Task Reopened",
+      message: taskWillBeCompleted
         ? "Great job! Task marked as complete"
         : "Task marked as incomplete",
-      color: updatedTasks[index].completed ? "green" : "blue",
+      color: taskWillBeCompleted ? "green" : "blue",
       styles: (theme) => ({
         root: {
-          backgroundColor: updatedTasks[index].completed
+          backgroundColor: taskWillBeCompleted
             ? theme.colors.green[0]
             : theme.colors.blue[0],
-          borderColor: updatedTasks[index].completed
+          borderColor: taskWillBeCompleted
             ? theme.colors.green[6]
             : theme.colors.blue[6],
         },
         title: {
-          color: updatedTasks[index].completed
+          color: taskWillBeCompleted
             ? theme.colors.green[9]
             : theme.colors.blue[9],
         },
         description: {
-          color: updatedTasks[index].completed
+          color: taskWillBeCompleted
             ? theme.colors.green[9]
             : theme.colors.blue[9],
         },
         closeButton: {
-          color: updatedTasks[index].completed
+          color: taskWillBeCompleted
             ? theme.colors.green[9]
             : theme.colors.blue[9],
           "&:hover": {
-            backgroundColor: updatedTasks[index].completed
+            backgroundColor: taskWillBeCompleted
               ? theme.colors.green[1]
               : theme.colors.blue[1],
           },
@@ -159,10 +134,8 @@ export default function App() {
     setIsModalOpen(true);
   }
 
-  function deleteTask(index) {
-    const updatedTasks = tasks.filter((_, taskIndex) => taskIndex !== index);
-    setTasks(updatedTasks);
-    saveTasks(updatedTasks);
+  function handleDeleteTask(index) {
+    deleteTask(index);
     notifications.show({
       title: "Task Deleted",
       message: "Task has been removed successfully",
@@ -181,23 +154,6 @@ export default function App() {
       }),
     });
   }
-
-  function loadTasks() {
-    let loadedTasks = localStorage.getItem("tasks");
-    let tasks = JSON.parse(loadedTasks);
-    if (tasks) {
-      setTasks(tasks);
-    }
-  }
-
-  function saveTasks(tasks) {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-  }
-
-  useEffect(() => {
-    loadTasks();
-  }, []);
-
   return (
     <BrowserRouter>
       <MantineProvider withGlobalStyles withNormalizeCSS>
@@ -239,13 +195,13 @@ export default function App() {
                 <Home
                   tasks={tasks}
                   startEditing={startEditing}
-                  deleteTask={deleteTask}
-                  toggleTaskComplete={toggleTaskComplete}
+                  deleteTask={handleDeleteTask}
+                  toggleTaskComplete={handleToggleTaskComplete}
                   setIsModalOpen={setIsModalOpen}
                 />
               }
             />
-            <Route path="/completed" element={<CompletedComponent/>}/>
+            <Route path="/completed" element={<CompletedComponent />} />
           </Routes>
         </div>
       </MantineProvider>
